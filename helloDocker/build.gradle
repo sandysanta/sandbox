@@ -1,0 +1,70 @@
+apply plugin: 'java'
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+version = '0.0.1'
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+}
+
+
+buildscript {
+  repositories {
+      gradlePluginPortal()
+      jcenter()
+  }
+  dependencies {
+    classpath 'com.bmuschko:gradle-docker-plugin:4.0.4'
+  }
+}
+
+
+uploadArchives {
+    repositories {
+       flatDir {
+           dirs 'repos'
+       }
+    }
+}
+
+jar {
+    baseName = "hello-docker"
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    manifest { attributes 'Main-Class': 'com.demo.HelloDocker' }
+}
+ 
+task copyJar(type: Copy) {
+    dependsOn   'jar'
+    from        "build/libs/elasticsearch-mesos-scheduler-${project.version}.jar"
+    into        'build/docker'
+    rename { String fileName ->
+        fileName.replace("-${project.version}", "")
+    }
+}
+
+
+// Import task types
+import com.bmuschko.gradle.docker.tasks.image.*
+
+
+docker {
+    if (System.env.containsKey('DOCKER_HOST') && System.env.containsKey('DOCKER_CERT_PATH')) {
+        url = System.env.DOCKER_HOST.replace("tcp", "https")
+        certPath = new File(System.env.DOCKER_CERT_PATH)
+    }
+}
+
+// Use task types
+task buildMyAppImage(type: DockerBuildImage) {
+    inputDir = file('docker-in')
+    tag = 'demo/hello-docker-image:'+"${project.version}"
+}
+
+
+build.dependsOn buildMyAppImage
+build.dependsOn copyJar
+
