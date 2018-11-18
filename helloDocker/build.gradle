@@ -3,6 +3,18 @@ apply plugin: 'com.bmuschko.docker-remote-api'
 
 version = '0.0.1'
 
+project.ext {
+    // The gradle project name defaults to the name of the directory containing this file
+    // (since docker requires lowercase names this is used to set a docker image name)
+    name = "hello-docker"
+}
+
+
+// Import task types
+import com.bmuschko.gradle.docker.tasks.image.*
+
+
+
 repositories {
     mavenCentral()
     jcenter()
@@ -22,7 +34,6 @@ buildscript {
   }
 }
 
-
 uploadArchives {
     repositories {
        flatDir {
@@ -39,16 +50,12 @@ jar {
  
 task copyJar(type: Copy) {
     dependsOn   'jar'
-    from        "build/libs/elasticsearch-mesos-scheduler-${project.version}.jar"
-    into        'build/docker'
+    from        "build/libs/hello-docker-${project.version}.jar"
+    into        "docker-in/"
     rename { String fileName ->
         fileName.replace("-${project.version}", "")
     }
 }
-
-
-// Import task types
-import com.bmuschko.gradle.docker.tasks.image.*
 
 
 docker {
@@ -58,13 +65,15 @@ docker {
     }
 }
 
-// Use task types
-task buildMyAppImage(type: DockerBuildImage) {
+task dockerize(type: DockerBuildImage) {
     inputDir = file('docker-in')
-    tag = 'demo/hello-docker-image:'+"${project.version}"
+    tags = [
+            "demo/${project.ext.name}:${project.version}",
+            "demo/${project.ext.name}:latest",
+    ]
 }
 
 
-build.dependsOn buildMyAppImage
-build.dependsOn copyJar
+dockerize.dependsOn copyJar
+
 
