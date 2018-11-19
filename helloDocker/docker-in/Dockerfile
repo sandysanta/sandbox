@@ -1,5 +1,7 @@
 FROM library/centos:7
 
+VOLUME /tmp
+
 RUN yum install -y java; \
     useradd sandy -d /home/sandy -G users -m
 
